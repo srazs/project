@@ -1,0 +1,60 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STORE_MANAGER
+  PRODUCTION_MANAGER
+  QA_OFFICER
+  ADMIN
+}
+
+enum QAStatus {
+  PENDING
+  PASSED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(STORE_MANAGER)
+  createdAt DateTime @default(now())
+}
+
+model RawMaterial {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  name        String
+  stockQty    Float    // in Kilograms
+  expiryDate  DateTime
+  batches     Batch[]
+}
+
+model Batch {
+  id             String            @id @default(uuid())
+  batchNumber    String            @unique // e.g., BATCH-NAPA-2026-001
+  quantity       Int               // Number of tablets/capsules produced
+  mfgDate        DateTime          @default(now())
+  expiryDate     DateTime
+  rawMaterialId  String
+  rawMaterial    RawMaterial       @relation(fields: [rawMaterialId], references: [id])
+  qualityControl QualityAssurance?
+}
+
+model QualityAssurance {
+  id          String   @id @default(uuid())
+  batchId     String   @unique
+  batch       Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  status      QAStatus @default(PENDING)
+  comments    String?
+  inspectedBy String
+  updatedAt   DateTime @updatedAt
+}
